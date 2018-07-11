@@ -2,7 +2,7 @@
 <html >
   <head>
     <meta charset="UTF-8">
-    <title>Error – Are You Logged In?</title>
+    <title>Bitte anmelden</title>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
@@ -11,7 +11,7 @@
     body {
       font-family: "Open Sans", sans-serif;
       height: 100vh;
-      background: url("https://i.imgur.com/HgflTDf.jpg") 50% fixed;
+      background: url("https://hochzeit.jaeckles.de/img/Antrag2_72dpi.jpg") 50% fixed;
       background-size: cover;
     }
     @keyframes spinner {
@@ -174,14 +174,14 @@
   <body>
     <div class="wrapper">
       <form class="login" id="loginForm" action="https://{website}/Prod/login">
-        <p class="title">Error – Are You Logged In?</p>
-        <input id="username" type="text" placeholder="Username" autofocus/>
+        <p class="title">Bitte anmelden:</p>
+        <input id="username" type="text" placeholder="Benutzername" autofocus/>
         <i class="fa fa-user"></i>
-        <input id="password" type="password" placeholder="Password" />
+        <input id="password" type="password" placeholder="Passwort" />
         <i class="fa fa-key"></i>
         <button>
         <i class="spinner"></i>
-        <span class="state">Log In</span>
+        <span class="state">Anmelden</span>
         </button>
       </form>
     </p>
@@ -213,16 +213,16 @@
             document.cookie = cookies[i];
           }
           $this.addClass('ok');
-          $state.html('Loading Site...');
+          $state.html('Lade Seite...');
           setTimeout(function() {
             window.location.replace("https://{website}");
           }, 1000);
         },
         error: function(XMLHttpRequest, textStatus, errorThrown) {
           $this.addClass('fail');
-          $state.html('Incorrect Username or Password');
+          $state.html('Falscher Benutzername oder Passwort');
           setTimeout(function() {
-            $state.html('Log In');
+            $state.html('Anmelden');
             $this.removeClass('fail loading');
             $("#username").val('');
             $("#password").val('');

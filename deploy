@@ -1,4 +1,7 @@
-#!/bin/bash -e
+#!/bin/bash -ie
+
+#alias docker="docker.exe"
+#PATH="$PATH:/mnts/Docker/Docker/resources/bin"
 
 if [ -z "$1" ]; then
   echo "Usage:"
@@ -11,7 +14,7 @@ else
 fi
 
 output_template_file=$(mktemp)
-stackName="AWSPics"
+stackName="jaeckle-hochzeitsbilder"
 
 for function in login resize site-builder; do
   (
