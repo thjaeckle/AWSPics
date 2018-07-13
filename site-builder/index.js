@@ -41,7 +41,7 @@ function folderName(path) {
 
 function getAlbums(data) {
   var objects = data.Contents.sort(function(a,b){
-    return b.LastModified - a.LastModified;
+    return a.Key - b.Key;
   }).map(stripPrefix);
   var albums = objects.map(folderName);
   // Deduplicate albums
