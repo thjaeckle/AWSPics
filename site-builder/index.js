@@ -50,7 +50,8 @@ function getAlbums(data) {
   var albums = objects.map(folderName);
   // Deduplicate albums
   albums = albums.filter(function(item, pos) {
-    return albums.indexOf(item) == pos;
+    // filter .zip files - we don't want to have them in the albums overview:
+    return !item.endsWith(".zip") && albums.indexOf(item) == pos;
   });
 
   var pictures = albums.map(function(album){
