@@ -1,5 +1,5 @@
 var AWS = require("aws-sdk");
-var s3 = new AWS.S3();
+var s3 = new AWS.S3({signatureVersion: 'v4'});
 var cloudfront = new AWS.CloudFront();
 
 var async = require('async');
@@ -39,8 +39,27 @@ function folderName(path) {
   return path.split('/')[0];
 }
 
+// Test if object is empty or not
+function isEmpty(obj) {
+  for(var key in obj) {
+    if(obj.hasOwnProperty(key))
+      return false;
+  }
+  return true;
+}
+
+// Google Analytics gtag code
+var ga = "<!-- Global site tag (gtag.js) - Google Analytics -->\n" +
+	"\t\t<script async src=\"https://www.googletagmanager.com/gtag/js?id={gtag}\"></script>\n" +
+	"\t\t<script>\n" +
+	"\t\t  window.dataLayer = window.dataLayer || [];\n" +
+	"\t\t  function gtag(){dataLayer.push(arguments);}\n" +
+	"\t\t  gtag('js', new Date());\n" +
+  "\t\t  gtag('config', '{gtag}');\n" +
+	"\t\t</script>";
+
 function getAlbums(data) {
-  var objects = data.Contents.sort(function(a,b){
+  var objects = data.sort(function(a,b){
     var x = a.Key.toLowerCase();
     var y = b.Key.toLowerCase();
     if (x < y) return 1;
@@ -56,7 +75,7 @@ function getAlbums(data) {
 
   var pictures = albums.map(function(album){
     return objects.filter(function(object){
-      return object.startsWith(album + "/") && object.endsWith('.jpg');
+      return object.startsWith(album + "/") && (object.toLowerCase().endsWith('.jpg') || object.toLowerCase().endsWith('.png'));
     });
   });
 
@@ -72,7 +91,15 @@ function uploadHomepageSite(albums, pictures, metadata) {
       var body = fs.readFileSync(f);
 
       if (path.basename(f) == 'error.html') {
-        body = body.toString().replace(/\{website\}/g, process.env.WEBSITE);
+        // Test if "googleanalytics" is set or not
+        if (!isEmpty(process.env.GOOGLEANALYTICS)) {
+          body = body.toString().replace(/\{website\}/g, process.env.WEBSITE)
+                                .replace(/\{googletracking\}/g, ga)
+                                .replace(/\{gtag\}/g, process.env.GOOGLEANALYTICS);
+        } else {
+          body = body.toString().replace(/\{website\}/g, process.env.WEBSITE)
+                                .replace('{googletracking}', '');
+        }
       } else if (path.basename(f) == 'index.html') {
         var picturesHTML = '';
         for (var i = 0; i < albums.length; i++) {
@@ -83,10 +110,19 @@ function uploadHomepageSite(albums, pictures, metadata) {
           picturesHTML = "\t\t\t\t\t\t<article class=\"thumb\">\n" +
                           "\t\t\t\t\t\t\t<a href=\"" + albums[i] + "/index.html\" class=\"image\"><img src=\"/pics/resized/1200x750/" + pictures[i][pictures[i].length-1] + "\" alt=\"\" /></a>\n" +
                           "\t\t\t\t\t\t\t<h2>" + albumTitle + "</h2>\n" +
-                          "\t\t\t\t\t\t</article>\n" + picturesHTML;
+                          "\t\t\t\t\t\t</article>" + picturesHTML;
         }
-        body = body.toString().replace(/\{title\}/g, process.env.WEBSITE_TITLE)
-                              .replace(/\{pictures\}/g, picturesHTML);
+        // Test if "googleanalytics" is set or not
+        if (!isEmpty(process.env.GOOGLEANALYTICS)) {
+          body = body.toString().replace(/\{title\}/g, process.env.WEBSITE_TITLE)
+                                .replace(/\{pictures\}/g, picturesHTML)
+                                .replace(/\{googletracking\}/g, ga)
+                                .replace(/\{gtag\}/g, process.env.GOOGLEANALYTICS);
+        } else {
+          body = body.toString().replace(/\{title\}/g, process.env.WEBSITE_TITLE)
+                                .replace(/\{pictures\}/g, picturesHTML)
+                                .replace('{googletracking}', '');
+        }
       }
 
       var options = {
@@ -132,10 +168,21 @@ function uploadAlbumSite(title, pictures, metadata) {
                           "<p><a href=\"/pics/original/" + pictures[i] + "\" download>Herunterladen in voller Auflösung</a></p>\n" +
                           "\t\t\t\t\t\t</article>";
         }
-        body = body.toString().replace(/\{title\}/g, renderedTitle)
-                              .replace(/\{comment1\}/g, comment1)
-                              .replace(/\{comment2\}/g, comment2)
-                              .replace(/\{pictures\}/g, picturesHTML);
+        // Test if "googleanalytics" is set or not
+        if (!isEmpty(process.env.GOOGLEANALYTICS)) {
+          body = body.toString().replace(/\{title\}/g, renderedTitle)
+                                .replace(/\{comment1\}/g, comment1)
+                                .replace(/\{comment2\}/g, comment2)
+                                .replace(/\{pictures\}/g, picturesHTML)
+                                .replace(/\{googletracking\}/g, ga)
+                                .replace(/\{gtag\}/g, process.env.GOOGLEANALYTICS);
+        } else {
+          body = body.toString().replace(/\{title\}/g, renderedTitle)
+                                .replace(/\{comment1\}/g, comment1)
+                                .replace(/\{comment2\}/g, comment2)
+                                .replace(/\{pictures\}/g, picturesHTML)
+                                .replace('{googletracking}', '');
+        }
       }
 
       var options = {
@@ -203,28 +250,43 @@ function getAlbumMetadata(album, cb) {
 
 exports.handler = function(event, context) {
   // List all bucket objects
-  s3.listObjectsV2({Bucket: process.env.ORIGINAL_BUCKET}, function(err, data) {
-    // Handle error
-    if (err) {
-      console.log(err, err.stack);
-      return;
-    }
+  var params = {
+    Bucket: process.env.ORIGINAL_BUCKET
+  };
+  var allContents = [];
+  listAllContents();
+  function listAllContents() {
+    s3.listObjectsV2(params, function (err, data) {
+      if (err) {
+        console.log(err, err.stack); // an error occurred
+      } else {
+        var contents = data.Contents;
+        contents.forEach(function (content) {
+          allContents.push(content);
+        });
 
-    // Parse albums
-    var albumsAndPictures = getAlbums(data);
+        if (data.IsTruncated) {
+          params.ContinuationToken = data.NextContinuationToken;
+          listAllContents();
+        }
 
-    // Get metadata for all albums
-    async.map(albumsAndPictures.albums, getAlbumMetadata, function(err, metadata) {
-      // Upload homepage site
-      uploadHomepageSite(albumsAndPictures.albums, albumsAndPictures.pictures, metadata);
+        // Parse albums
+        var albumsAndPictures = getAlbums(allContents);
 
-      // Upload album sites
-      for (var i = albumsAndPictures.albums.length - 1; i >= 0; i--) {
-        uploadAlbumSite(albumsAndPictures.albums[i], albumsAndPictures.pictures[i], metadata[i]);
+        // Get metadata for all albums
+        async.map(albumsAndPictures.albums, getAlbumMetadata, function(err, metadata) {
+          // Upload homepage site
+          uploadHomepageSite(albumsAndPictures.albums, albumsAndPictures.pictures, metadata);
+
+          // Upload album sites
+          for (var i = albumsAndPictures.albums.length - 1; i >= 0; i--) {
+            uploadAlbumSite(albumsAndPictures.albums[i], albumsAndPictures.pictures[i], metadata[i]);
+          }
+
+          // Invalidate CloudFront
+          invalidateCloudFront();
+        });
       }
-
-      // Invalidate CloudFront
-      invalidateCloudFront();
     });
-  });
+  }
 };

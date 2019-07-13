@@ -2,7 +2,7 @@ var async = require("async");
 var AWS = require("aws-sdk");
 
 var im = require("gm").subClass({imageMagick: true});
-var s3 = new AWS.S3();
+var s3 = new AWS.S3({signatureVersion: 'v4'});
 
 function getImageType(objectContentType) {
   if (objectContentType === "image/jpeg") {
@@ -54,7 +54,7 @@ exports.handler = function(event, context) {
         var image = resizePair[1];
         var width = config.split('x')[0]
         var height = config.split('x')[1]
-        var operation = im(image.buffer).resize(width, height, '^');
+        var operation = im(image.buffer).autoOrient().resize(width, height, '^');
         if (config == "360x225") {
           operation = operation.gravity('Center').crop(width, height);
         }
@@ -82,4 +82,3 @@ exports.handler = function(event, context) {
     }
   });
 };
-
