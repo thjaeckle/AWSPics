@@ -26,10 +26,12 @@ function getFilteredSortedBucketData(data) {
   return data
     .sort(sorters.lastModifiedDescSorter)
     .filter(function(object) {
-      return (
-        object.Key.lastIndexOf(miscUtils.getPicsOriginalPath(), 0) === 0 &&
-        !object.Key.includes('metadata.yml')
-      );
+      let isIncluded = object.Key.lastIndexOf(miscUtils.getPicsOriginalPath(), 0) === 0 &&
+             !object.Key.includes('metadata.yml') &&
+             !object.Key.includes('index.html') &&
+             !object.Key.endsWith('.zip');
+      //console.log("Key '" + object.Key + "' is included: " + isIncluded);
+      return isIncluded;
     })
     .map(miscUtils.stripPrefix);
 }
@@ -49,24 +51,31 @@ exports.getAlbumsByCollection = function(data) {
   const collections = getUniqueFirstLevelObjects(objects);
   const albums = getUniqueSecondLevelObjects(objects);
 
+  console.log("Albums: " + JSON.stringify(albums));
+
   let album, coll, collIndex;
   const albumsByCollection = [];
   const collIndexMap = {};
 
   for (let i = 0; i < albums.length; i++) {
     album = albums[i];
-    coll = pathUtils.firstLevelFolderName(album);
 
-    if (collIndexMap[coll] != null) {
-      collIndex = collIndexMap[coll];
-    }
-    else {
-      collIndex = albumsByCollection.length;
-      collIndexMap[coll] = collIndex;
-      albumsByCollection.push({collection: coll, albums: []});
-    }
+    if (album && album !== "/") {
+      coll = pathUtils.firstLevelFolderName(album);
 
-    albumsByCollection[collIndex].albums.push(album);
+      if (coll && coll !== "/") {
+        if (collIndexMap[coll] != null) {
+          collIndex = collIndexMap[coll];
+        }
+        else {
+          collIndex = albumsByCollection.length;
+          collIndexMap[coll] = collIndex;
+          albumsByCollection.push({collection: coll, albums: []});
+        }
+
+        albumsByCollection[collIndex].albums.push(album);
+      }
+    }
   }
 
   const pictures = picture.getPicturesByCollection(albumsByCollection, objects);

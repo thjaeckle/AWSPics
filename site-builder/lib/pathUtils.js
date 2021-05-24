@@ -11,5 +11,8 @@ exports.secondLevelFolderName = function(path) {
 
 exports.firstAndSecondLevelFolderName = function(path) {
   const splits = path.split('/');
-  return splits[0] + '/' + splits[1];
+  if (splits[1]) {
+    return splits[0] + '/' + splits[1];
+  }
+  return undefined;
 };

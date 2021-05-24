@@ -77,7 +77,7 @@ const getHomePageBody = exports.getHomePageBody = function(
     else {
       navMarkup = nav.replace(
         /\{navLink\}/g,
-        '<a href="/">Back to ' + process.env.WEBSITE_TITLE + '</a>'
+        '<a href="/">Zurück zu ' + process.env.WEBSITE_TITLE + ' &uarr;</a>'
       );
     }
   }
@@ -108,7 +108,7 @@ const getHomePageBody = exports.getHomePageBody = function(
     }
 
     footerContent += (
-      '<p><a href="/">Back to ' + process.env.WEBSITE_TITLE + '</a></p>\n'
+      '<p><a href="/">Zurück zu ' + process.env.WEBSITE_TITLE + ' &uarr;</a></p>\n'
     );
 
     footerMarkup = footer.replace(/\{footerContent\}/g, footerContent);
